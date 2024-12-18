@@ -1,30 +1,14 @@
-/**
- * YouTube Channel: https://youtube.com/@AM_CLUB
- * GitHub Repository: https://github.com/amclubs
- * Telegram Group: https://t.me/AM_CLUBS
- * Personal Blog: https://am.809098.xyz
- */
+
 
 // @ts-ignore
 import { connect } from 'cloudflare:sockets';
 
 // Generate your own UUID using the following command in PowerShell:
 // Powershell -NoExit -Command "[guid]::NewGuid()"
-let userID = '2928d83a-ca75-4d52-b437-fa78c7601378';
+let userID = '18c45807-c887-4ff7-8a35-82b7dc3d7b2b';
 
-// Proxy IPs to choose from
-let proxyIPs = [
-	'proxyip.amclubs.camdvr.org',
-	'proxyip.amclubs.kozow.com'
-];
-// Randomly select a proxy IP from the list
-let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 let proxyPort = 443;
-let proxyIpTxt = 'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/proxyip.txt';
 
-// Setting the socks5 will ignore proxyIP
-// Example:  user:pass@host:port  or  host:port
-let socks5 = '';
 let socks5Enable = false;
 let parsedSocks5 = {};
 
@@ -32,48 +16,13 @@ let parsedSocks5 = {};
 // DNS-over-HTTPS URL
 let dohURL = 'https://sky.rethinkdns.com/1:-Pf_____9_8A_AMAIgE8kMABVDDmKOHTAKg=';
 
-// Preferred address API interface
-let ipUrlTxt = [
-	'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.txt',
-	// 'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv6.txt'
-];
-let ipUrlCsv = [
-	// 'https://raw.githubusercontent.com/amclubs/am-cf-tunnel/main/ipv4.csv'
-];
-// Preferred addresses with optional TLS subscription
-let ipLocal = [
-	'visa.cn:443#youtube.com/@AM_CLUB 订阅频道获取更多教程',
-	'icook.hk#t.me/AM_CLUBS 加入交流群解锁更多优选节点',
-	'time.is:443#github.com/amclubs GitHub仓库查看更多项目'
-];
-let noTLS = 'false';
-let sl = 5;
-
-// let tagName = 'amclubs';
-let subUpdateTime = 6; // Subscription update time in hours
-let timestamp = 4102329600000; // Timestamp for the end date (2099-12-31)
-let total = 99 * 1125899906842624; // PB (perhaps referring to bandwidth or total entries)
-let download = Math.floor(Math.random() * 1099511627776);
-let upload = download;
 
 // Network protocol type
 let network = 'ws'; // WebSocket
 
-// Fake UUID and hostname for configuration generation
-let fakeUserID;
-let fakeHostName;
 
-// Subscription and conversion details
-let subProtocol = 'https';
-let subConverter = 'url.v1.mk'; // Subscription conversion backend using Sheep's function
-let subConfig = "https://raw.githubusercontent.com/amclubs/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini"; // Subscription profile
-let fileName = 'youtube.com/@am_club';
-let isBase64 = true;
 
-let botToken = '';
-let chatID = '';
 
-const httpPattern = /^http(s)?:\/\/.+/;
 
 if (!isValidUUID(userID)) {
 	throw new Error('uuid is invalid');
@@ -82,178 +31,36 @@ if (!isValidUUID(userID)) {
 export default {
 	/**
 	 * @param {import("@cloudflare/workers-types").Request} request
-	 * @param {{UUID: string, PROXYIP: string, DNS_RESOLVER_URL: string, NODE_ID: int, API_HOST: string, API_TOKEN: string}} env
+	 * @param {} env
 	 * @param {import("@cloudflare/workers-types").ExecutionContext} ctx
 	 * @returns {Promise<Response>}
-	*/
+	 */
 	async fetch(request, env, ctx) {
 		try {
-			const {
-				UUID,
-				PROXYIP,
-				SOCKS5,
-				DNS_RESOLVER_URL,
-				IP_LOCAL,
-				IP_URL_TXT,
-				IP_URL_CSV,
-				NO_TLS,
-				SL,
-				SUB_CONFIG,
-				SUB_CONVERTER,
-				SUB_NAME,
-				CF_EMAIL,
-				CF_KEY,
-				CF_ID = 0,
-				TG_TOKEN,
-				TG_ID,
-				//兼容
-				ADDRESSESAPI,
-			} = env;
-
-			userID = (UUID || userID).toLowerCase();
-			if (PROXYIP) {
-				if (httpPattern.test(PROXYIP)) {
-					let proxyIpTxt = await addIpText(PROXYIP);
-					let ipUrlTxtAndCsv;
-					if (PROXYIP.endsWith('.csv')) {
-						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, null, proxyIpTxt);
-
-					} else {
-						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxt, null);
-					}
-					const uniqueIpTxt = [...new Set([...ipUrlTxtAndCsv.txt, ...ipUrlTxtAndCsv.csv])];
-					proxyIP = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
-				} else {
-					proxyIPs = await addIpText(PROXYIP);
-					proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
-				}
-			} else {
-				let proxyIpTxts = await addIpText(proxyIpTxt);
-				let ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxts, null);
-				let updatedIps = ipUrlTxtAndCsv.txt.map(ip => `amclubs${download}.${ip}`);
-				const uniqueIpTxt = [...new Set([...updatedIps, ...proxyIPs])];
-				proxyIP = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
-			}
-			const [ip, port] = proxyIP.split(':');
-			proxyIP = ip;
-			proxyPort = port || proxyPort;
-
-			const url = new URL(request.url);
-			socks5 = SOCKS5 || url.searchParams.get('socks5') || socks5;
-			parsedSocks5 = await parseSocks5FromUrl(socks5, url);
-			if (parsedSocks5) {
-				socks5Enable = true;
-			}
-
-			dohURL = (DNS_RESOLVER_URL || dohURL);
-
-			if (IP_LOCAL) {
-				ipLocal = await addIpText(IP_LOCAL);
-			}
-			//兼容旧的，如果有IP_URL_TXT新的则不用旧的
-			if (ADDRESSESAPI) {
-				ipUrlTxt = await addIpText(ADDRESSESAPI);
-			}
-			if (IP_URL_TXT) {
-				ipUrlTxt = await addIpText(IP_URL_TXT);
-			}
-			if (IP_URL_CSV) {
-				ipUrlCsv = await addIpText(IP_URL_CSV);
-			}
-
-			noTLS = (NO_TLS || noTLS);
-			sl = (SL || sl);
-			subConfig = (SUB_CONFIG || subConfig);
-			subConverter = (SUB_CONVERTER || subConverter);
-			fileName = (SUB_NAME || subConverter);
-			botToken = (TG_TOKEN || botToken);
-			chatID = (TG_ID || chatID);
-
-			// Unified protocol for handling subconverters
-			const [subProtocol, subConverterWithoutProtocol] = (subConverter.startsWith("http://") || subConverter.startsWith("https://"))
-				? subConverter.split("://")
-				: [undefined, subConverter];
-			subConverter = subConverterWithoutProtocol;
-
-			// console.log(`proxyIPs: ${proxyIPs} \n proxyIP: ${proxyIP} \n ipLocal: ${ipLocal} \n ipUrlTxt: ${ipUrlTxt} `);
-
 			//const uuid = url.searchParams.get('uuid')?.toLowerCase() || 'null';
 			const ua = request.headers.get('User-Agent') || 'null';
 			const userAgent = ua.toLowerCase();
 			const host = request.headers.get('Host');
 			const upgradeHeader = request.headers.get('Upgrade');
-			const expire = Math.floor(timestamp / 1000);
 
 			// If WebSocket upgrade, handle WebSocket request
 			if (upgradeHeader === 'websocket') {
 				return await vlessOverWSHandler(request);
 			}
 
-			fakeUserID = await getFakeUserID(userID);
-			fakeHostName = fakeUserID.slice(6, 9) + "." + fakeUserID.slice(13, 19);
-			console.log(`userID: ${userID}`);
-			console.log(`fakeUserID: ${fakeUserID}`);
-			// Handle routes based on the path
-			switch (url.pathname.toLowerCase()) {
-				case '/': {
-					return new Response(await nginx(), {
-						headers: {
-							'Content-Type': 'text/html; charset=UTF-8',
-							'referer': 'https://www.google.com/search?q=AM科技',
-						},
-					});
-				}
 
-				case `/${fakeUserID}`: {
-					// Disguise UUID node generation
-					const fakeConfig = await getVLESSConfig(userID, host, 'CF-FAKE-UA', url);
-					return new Response(fakeConfig, { status: 200 });
-				}
+			const vlessConfig = await getVLESSConfig(userID, host, userAgent);
+			const isMozilla = userAgent.includes('mozilla');
+			// Prepare common headers
+			const commonHeaders = {
+				"Content-Type": isMozilla ? "text/html;charset=utf-8" : "text/plain;charset=utf-8",
+			};
 
-				case `/${userID}`: {
-					// Handle real UUID requests and get node info
-					await sendMessage(
-						`#获取订阅 ${fileName}`,
-						request.headers.get('CF-Connecting-IP'),
-						`UA: ${userAgent}\n域名: ${url.hostname}\n入口: ${url.pathname + url.search}`
-					);
+			return new Response(vlessConfig, {
+				status: 200,
+				headers: commonHeaders,
+			});
 
-					const vlessConfig = await getVLESSConfig(userID, host, userAgent, url);
-					const isMozilla = userAgent.includes('mozilla');
-
-					const config = await getCFConfig(CF_EMAIL, CF_KEY, CF_ID);
-					if (CF_EMAIL && CF_KEY) {
-						({ upload, download, total } = config);
-					}
-
-					// Prepare common headers
-					const commonHeaders = {
-						"Content-Type": isMozilla ? "text/html;charset=utf-8" : "text/plain;charset=utf-8",
-						"Profile-Update-Interval": `${subUpdateTime}`,
-						"Subscription-Userinfo": `upload=${upload}; download=${download}; total=${total}; expire=${expire}`,
-					};
-
-					// Add download headers if not a Mozilla browser
-					if (!isMozilla) {
-						commonHeaders["Content-Disposition"] = `attachment; filename=${fileName}; filename*=utf-8''${encodeURIComponent(fileName)}`;
-					}
-
-					return new Response(vlessConfig, {
-						status: 200,
-						headers: commonHeaders,
-					});
-				}
-
-				default: {
-					// Serve the default nginx disguise page
-					return new Response(await nginx(), {
-						headers: {
-							'Content-Type': 'text/html; charset=UTF-8',
-							'referer': 'https://www.google.com/search?q=am.809098.xyz',
-						},
-					});
-				}
-			}
 		} catch (err) {
 			// Log error for debugging purposes
 			console.error('Error processing request:', err);
@@ -302,28 +109,6 @@ function stringify(arr, offset = 0) {
 	return uuid;
 }
 
-async function getFakeUserID(userID) {
-	const date = new Date().toISOString().split('T')[0];
-	const rawString = `${userID}-${date}`;
-
-	const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawString));
-	const hashArray = Array.from(new Uint8Array(hashBuffer)).map(b => ('00' + b.toString(16)).slice(-2)).join('');
-
-	return `${hashArray.substring(0, 8)}-${hashArray.substring(8, 12)}-${hashArray.substring(12, 16)}-${hashArray.substring(16, 20)}-${hashArray.substring(20, 32)}`;
-}
-
-function revertFakeInfo(content, userID, hostName) {
-	//console.log(`revertFakeInfo-->: isBase64 ${isBase64} \n content: ${content}`);
-	if (isBase64) {
-		content = atob(content);//Base64 decrypt
-	}
-	content = content.replace(new RegExp(fakeUserID, 'g'), userID).replace(new RegExp(fakeHostName, 'g'), hostName);
-	if (isBase64) {
-		content = btoa(content);//Base64 encryption
-	}
-	return content;
-}
-
 /**
  * Decodes a base64 string into an ArrayBuffer.
  * @param {string} base64Str The base64 string to decode.
@@ -344,80 +129,13 @@ function base64ToArrayBuffer(base64Str) {
 	}
 }
 
-async function addIpText(envAdd) {
-	var addText = envAdd.replace(/[	|"'\r\n]+/g, ',').replace(/,+/g, ',');
-	//console.log(addText);
-	if (addText.charAt(0) == ',') {
-		addText = addText.slice(1);
-	}
-	if (addText.charAt(addText.length - 1) == ',') {
-		addText = addText.slice(0, addText.length - 1);
-	}
-	const add = addText.split(',');
-	// console.log(add);
-	return add;
-}
 
-function socks5Parser(socks5) {
-	let [latter, former] = socks5.split("@").reverse();
-	let username, password, hostname, port;
 
-	if (former) {
-		const formers = former.split(":");
-		if (formers.length !== 2) {
-			throw new Error('Invalid SOCKS address format: authentication must be in the "username:password" format');
-		}
-		[username, password] = formers;
-	}
-
-	const latters = latter.split(":");
-	port = Number(latters.pop());
-	if (isNaN(port)) {
-		throw new Error('Invalid SOCKS address format: port must be a number');
-	}
-
-	hostname = latters.join(":");
-	const isIPv6 = hostname.includes(":") && !/^\[.*\]$/.test(hostname);
-	if (isIPv6) {
-		throw new Error('Invalid SOCKS address format: IPv6 addresses must be enclosed in brackets, e.g., [2001:db8::1]');
-	}
-
-	//console.log(`socks5Parser-->: username ${username} \n password: ${password} \n hostname: ${hostname} \n port: ${port}`);
-	return { username, password, hostname, port };
-}
-
-async function parseSocks5FromUrl(socks5, url) {
-	if (/\/socks5?=/.test(url.pathname)) {
-		socks5 = url.pathname.split('5=')[1];
-	} else if (/\/socks[5]?:\/\//.test(url.pathname)) {
-		socks5 = url.pathname.split('://')[1].split('#')[0];
-	}
-
-	const authIdx = socks5.indexOf('@');
-	if (authIdx !== -1) {
-		let userPassword = socks5.substring(0, authIdx);
-		const base64Regex = /^(?:[A-Z0-9+/]{4})*(?:[A-Z0-9+/]{2}==|[A-Z0-9+/]{3}=)?$/i;
-		if (base64Regex.test(userPassword) && !userPassword.includes(':')) {
-			userPassword = atob(userPassword);
-		}
-		socks5 = `${userPassword}@${socks5.substring(authIdx + 1)}`;
-	}
-
-	if (socks5) {
-		try {
-			return socks5Parser(socks5);
-		} catch (err) {
-			console.log(err.toString());
-			return null;
-		}
-	}
-	return null;
-}
 
 
 /** ---------------------Get data------------------------------ */
 
-let subParams = ['sub', 'base64', 'b64', 'clash', 'singbox', 'sb'];
+
 /**
  * @param {string} userID
  * @param {string | null} host
@@ -425,228 +143,39 @@ let subParams = ['sub', 'base64', 'b64', 'clash', 'singbox', 'sb'];
  * @param {string} _url
  * @returns {Promise<string>}
  */
-async function getVLESSConfig(userID, host, userAgent, _url) {
-	// console.log(`------------getVLESSConfig------------------`);
-	// console.log(`userID: ${userID} \n host: ${host} \n userAgent: ${userAgent} \n _url: ${_url}`);
-
+async function getVLESSConfig(userID, host, userAgent) {
 	userAgent = userAgent.toLowerCase();
 	let port = 443;
-	if (host.includes('.workers.dev')) {
-		port = 80;
+	const v2ray = getConfigLink(userID, host, host, port, host);
+	if (userAgent.includes('mozilla')) {
+		return getConfigHtml(v2ray);
 	}
-	const [v2ray, clash] = getConfigLink(userID, host, host, port, host);
-
-	if (userAgent.includes('mozilla') && !subParams.some(param => _url.searchParams.has(param))) {
-		return getHtmlResponse(socks5Enable, userID, host, v2ray, clash);
-	}
-
-	// Get node information
-	fakeHostName = getFakeHostName(host);
-	const ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, ipUrlTxt, ipUrlCsv);
-
-	// console.log(`txt: ${ipUrlTxtAndCsv.txt} \n csv: ${ipUrlTxtAndCsv.csv}`);
-	let content = await getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxtAndCsv.txt, ipUrlTxtAndCsv.csv);
-
-	return _url.pathname === `/${fakeUserID}` ? content : revertFakeInfo(content, userID, host);
-
-}
-
-function getHtmlResponse(socks5Enable, userID, host, v2ray, clash) {
-	const subRemark = `IP_URL_TXT/IP_URL_CSV/IP_LOCAL`;
-	let proxyIPRemark = `PROXYIP: ${proxyIP}`;
-
-	if (socks5Enable) {
-		proxyIPRemark = `socks5: ${parsedSocks5.hostname}:${parsedSocks5.port}`;
-	}
-
-	let remark = `您的订阅节点由设置变量 ${subRemark} 提供, 当前使用反代是${proxyIPRemark}`;
-
-	if (!proxyIP && !socks5Enable) {
-		remark = `您的订阅节点由设置变量 ${subRemark} 提供, 当前没设置反代, 推荐您设置PROXYIP变量或SOCKS5变量或订阅连接带proxyIP`;
-	}
-
-	return getConfigHtml(userID, host, remark, v2ray, clash);
-}
-
-function getFakeHostName(host) {
-	if (host.includes(".pages.dev")) {
-		return `${fakeHostName}.pages.dev`;
-	} else if (host.includes(".workers.dev") || host.includes("notls") || noTLS === 'true') {
-		return `${fakeHostName}.workers.dev`;
-	}
-	return `${fakeHostName}.xyz`;
-}
-
-async function getIpUrlTxtAndCsv(noTLS, urlTxts, urlCsvs) {
-	if (noTLS === 'true') {
-		return {
-			txt: await getIpUrlTxt(urlTxts),
-			csv: await getIpUrlCsv(urlCsvs, 'FALSE')
-		};
-	}
-	return {
-		txt: await getIpUrlTxt(urlTxts),
-		csv: await getIpUrlCsv(urlCsvs, 'TRUE')
-	};
-}
-
-async function getIpUrlTxt(urlTxts) {
-	if (!urlTxts || urlTxts.length === 0) {
-		return [];
-	}
-
-	let ipTxt = "";
-
-	// Create an AbortController object to control the cancellation of fetch requests
-	const controller = new AbortController();
-
-	// Set a timeout to trigger the cancellation of all requests after 2 seconds
-	const timeout = setTimeout(() => {
-		controller.abort(); // Cancel all requests
-	}, 2000);
-
-	try {
-		// Use Promise.allSettled to wait for all API requests to complete, regardless of success or failure
-		// Iterate over the api array and send a fetch request to each API URL
-		const responses = await Promise.allSettled(urlTxts.map(apiUrl => fetch(apiUrl, {
-			method: 'GET',
-			headers: {
-				'Accept': 'text/html,application/xhtml+xml,application/xml;',
-				'User-Agent': 'amclubs/am-cf-tunnel'
-			},
-			signal: controller.signal // Attach the AbortController's signal to the fetch request to allow cancellation when needed
-		}).then(response => response.ok ? response.text() : Promise.reject())));
-
-		// Iterate through all the responses
-		for (const response of responses) {
-			// Check if the request was fulfilled successfully
-			if (response.status === 'fulfilled') {
-				// Get the response content
-				const content = await response.value;
-				ipTxt += content + '\n';
-			}
-		}
-	} catch (error) {
-		console.error(error);
-	} finally {
-		// Clear the timeout regardless of success or failure
-		clearTimeout(timeout);
-	}
-
-	// Process the result using addIpText function
-	const newIpTxt = await addIpText(ipTxt);
-	// console.log(`ipUrlTxts: ${ipUrlTxts} \n ipTxt: ${ipTxt} \n newIpTxt: ${newIpTxt} `);
-
-	// Return the processed result
-	return newIpTxt;
-}
-
-async function getIpUrlCsv(urlCsvs, tls) {
-	// Check if the CSV URLs are valid
-	if (!urlCsvs || urlCsvs.length === 0) {
-		return [];
-	}
-
-	const newAddressesCsv = [];
-
-	// Fetch and process all CSVs concurrently
-	const fetchCsvPromises = urlCsvs.map(async (csvUrl) => {
-		try {
-			const response = await fetch(csvUrl);
-
-			// Ensure the response is successful
-			if (!response.ok) {
-				console.error('Error fetching CSV:', response.status, response.statusText);
-				return;
-			}
-
-			// Parse the CSV content and split it into lines
-			const text = await response.text();
-			const lines = text.includes('\r\n') ? text.split('\r\n') : text.split('\n');
-
-			// Ensure we have a non-empty CSV
-			if (lines.length < 2) {
-				console.error('CSV file is empty or has no data rows');
-				return;
-			}
-
-			// Extract the header and get required field indexes
-			const header = lines[0].trim().split(',');
-			const tlsIndex = header.indexOf('TLS');
-			const ipAddressIndex = 0; // Assuming the first column is IP address
-			const portIndex = 1; // Assuming the second column is port
-			const dataCenterIndex = tlsIndex + 1; // Data center assumed to be right after TLS
-			const speedIndex = header.length - 1; // Last column for speed
-
-			// If the required fields are missing, skip this CSV
-			if (tlsIndex === -1) {
-				console.error('CSV file missing required TLS field');
-				return;
-			}
-
-			// Process the data rows
-			for (let i = 1; i < lines.length; i++) {
-				const columns = lines[i].trim().split(',');
-
-				// Skip empty or malformed rows
-				if (columns.length < header.length) {
-					continue;
-				}
-
-				// Check if TLS matches and speed is greater than sl
-				const tlsValue = columns[tlsIndex].toUpperCase();
-				const speedValue = parseFloat(columns[speedIndex]);
-
-				if (tlsValue === tls && speedValue > sl) {
-					const ipAddress = columns[ipAddressIndex];
-					const port = columns[portIndex];
-					const dataCenter = columns[dataCenterIndex];
-					newAddressesCsv.push(`${ipAddress}:${port}#${dataCenter}`);
-				}
-			}
-		} catch (error) {
-			console.error('Error processing CSV URL:', csvUrl, error);
-		}
-	});
-
-	// Wait for all CSVs to be processed
-	await Promise.all(fetchCsvPromises);
-
-	return newAddressesCsv;
 }
 
 const protocolTypeBase64 = 'dmxlc3M=';
 /**
  * Get node configuration information
- * @param {*} uuid 
- * @param {*} host 
- * @param {*} address 
- * @param {*} port 
- * @param {*} remarks 
- * @returns 
+ * @param {*} uuid
+ * @param {*} host
+ * @param {*} address
+ * @param {*} port
+ * @param {*} remarks
+ * @returns
  */
 function getConfigLink(uuid, host, address, port, remarks) {
 	const protocolType = atob(protocolTypeBase64);
-
 	const encryption = 'none';
 	let path = '/?ed=2560';
 	const fingerprint = 'randomized';
 	let tls = ['tls', true];
-	if (host.includes('.workers.dev') || host.includes('pages.dev')) {
-		path = `/${host}${path}`;
-		remarks += ' 请通过绑定自定义域名订阅！';
-	}
-
 	const v2ray = getV2rayLink({ protocolType, host, uuid, address, port, remarks, encryption, path, fingerprint, tls });
-	const clash = getClashLink(protocolType, host, address, port, uuid, path, tls, fingerprint);
-
-	return [v2ray, clash];
+	return v2ray;
 }
 
 /**
  * Get vless information
- * @param {*} param0 
- * @returns 
+ * @param {*} param0
+ * @returns
  */
 function getV2rayLink({ protocolType, host, uuid, address, port, remarks, encryption, path, fingerprint, tls }) {
 	let sniAndFp = `&sni=${host}&fp=${fingerprint}`;
@@ -660,52 +189,16 @@ function getV2rayLink({ protocolType, host, uuid, address, port, remarks, encryp
 }
 
 /**
- * getClashLink
- * @param {*} protocolType 
- * @param {*} host 
- * @param {*} address 
- * @param {*} port 
- * @param {*} uuid 
- * @param {*} path 
- * @param {*} tls 
- * @param {*} fingerprint 
- * @returns 
- */
-function getClashLink(protocolType, host, address, port, uuid, path, tls, fingerprint) {
-	return `- {type: ${protocolType}, name: ${host}, server: ${address}, port: ${port}, password: ${uuid}, network: ${network}, tls: ${tls[1]}, udp: false, sni: ${host}, client-fingerprint: ${fingerprint}, skip-cert-verify: true,  ws-opts: {path: ${path}, headers: {Host: ${host}}}}`;
-
-	// 	return `
-	//   - type: ${protocolType}
-	//     name: ${host}
-	//     server: ${address}
-	//     port: ${port}
-	//     uuid: ${uuid}
-	//     network: ${network}
-	//     tls: ${tls[1]}
-	//     udp: false
-	//     sni: ${host}
-	//     client-fingerprint: ${fingerprint}
-	//     ws-opts:
-	//       path: "${path}"
-	//       headers:
-	//         host: ${host}
-	// 	`;
-}
-
-/**
  * Generate home page
- * @param {*} userID 
- * @param {*} hostName 
- * @param {*} remark 
- * @param {*} v2ray 
- * @param {*} clash 
- * @returns 
+ * @param {*} v2ray
+
+ * @returns
  */
-function getConfigHtml(userID, host, remark, v2ray, clash) {
+function getConfigHtml(v2ray) {
 	// HTML Head with CSS and FontAwesome library
 	const htmlHead = `
     <head>
-      <title>am-cf-tunnel(AM科技)</title>
+      <title>simple-cf</title>
       <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@AM_CLUB and follow GitHub https://github.com/amclubs ' />
       <style>
         body {
@@ -749,47 +242,13 @@ function getConfigHtml(userID, host, remark, v2ray, clash) {
     </head>
   `;
 
-	// Prepare header string with left alignment
-	const header = `
-		<p align="left" style="padding-left: 20px; margin-top: 20px;">
-		Telegram交流群 技术大佬~在线交流</br>
-		<a href="t.me/AM_CLUBS" target="_blank">t.me/AM_CLUBS</a>
-		</br></br>
-		GitHub项目地址 点击Star!Star!Star!</br>
-		<a href="https://github.com/amclubs/am-cf-tunnel" target="_blank">https://github.com/amclubs/am-cf-tunnel</a>
-		</br></br>
-		YouTube频道,订阅频道,更多技术分享</br>
-		<a href="https://youtube.com/@AM_CLUB" target="_blank">https://youtube.com/@AM_CLUB</a>
-		</p>
-  `;
 
-	// Prepare the output string
-	const httpAddr = `https://${host}/${userID}`;
 	const output = `
+
 ################################################################
-订阅地址, 支持 Base64、clash-meta、sing-box、Quantumult X、小火箭、surge 等订阅格式, ${remark}
----------------------------------------------------------------
-通用订阅地址: <button onclick='copyToClipboard("${httpAddr}?sub")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?sub
-
-Base64订阅地址: <button onclick='copyToClipboard("${httpAddr}?base64")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?base64
-
-clash订阅地址: <button onclick='copyToClipboard("${httpAddr}?clash")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?clash
-
-singbox订阅地址: <button onclick='copyToClipboard("${httpAddr}?singbox")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?singbox
----------------------------------------------------------------
-################################################################
-v2ray
+v2ray： <button onclick='copyToClipboard("${v2ray}")'><i class="fa fa-clipboard"></i> 点击复制v2ray信息 </button>
 ---------------------------------------------------------------
 ${v2ray}
----------------------------------------------------------------
-################################################################
-clash-meta
----------------------------------------------------------------
-${clash}
 ---------------------------------------------------------------
 ################################################################
   `;
@@ -799,7 +258,6 @@ ${clash}
 <html>
 ${htmlHead}
 <body>
-  ${header}
   <pre>${output}</pre>
   <script>
     function copyToClipboard(text) {
@@ -821,312 +279,6 @@ ${htmlHead}
 
 
 let portSet_http = new Set([80, 8080, 8880, 2052, 2086, 2095, 2082]);
-let portSet_https = new Set([443, 8443, 2053, 2096, 2087, 2083]);
-/**
- * 
- * @param {*} host 
- * @param {*} uuid 
- * @param {*} noTLS 
- * @param {*} ipUrlTxt 
- * @param {*} ipUrlCsv 
- * @returns 
- */
-async function getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxt, ipUrlCsv) {
-	// Use Set object to remove duplicates
-	const uniqueIpTxt = [...new Set([...ipLocal, ...ipUrlTxt, ...ipUrlCsv])];
-	let responseBody = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent);
-	// console.log(`getSubscribeNode---> responseBody: ${responseBody} `);
-
-	if (!userAgent.includes(('CF-FAKE-UA').toLowerCase())) {
-
-		let url = `https://${host}/${fakeUserID}`;
-
-		if (isClashCondition(userAgent, _url)) {
-			isBase64 = false;
-			url = createSubConverterUrl('clash', url, subConfig, subConverter, subProtocol);
-		} else if (isSingboxCondition(userAgent, _url)) {
-			isBase64 = false;
-			url = createSubConverterUrl('singbox', url, subConfig, subConverter, subProtocol);
-		} else {
-			return responseBody;
-		}
-		const response = await fetch(url, {
-			headers: {
-				'User-Agent': `${userAgent} am-cf-tunnel/amclubs`
-			}
-		});
-		responseBody = await response.text();
-		//console.log(`getSubscribeNode---> url: ${url} `);
-	}
-
-	return responseBody;
-}
-
-function createSubConverterUrl(target, url, subConfig, subConverter, subProtocol) {
-	return `${subProtocol}://${subConverter}/sub?target=${target}&url=${encodeURIComponent(url)}&insert=false&config=${encodeURIComponent(subConfig)}&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
-}
-
-function isClashCondition(userAgent, _url) {
-	return (userAgent.includes('clash') && !userAgent.includes('nekobox')) || (_url.searchParams.has('clash') && !userAgent.includes('subConverter'));
-}
-
-function isSingboxCondition(userAgent, _url) {
-	return userAgent.includes('sing-box') || userAgent.includes('singbox') || ((_url.searchParams.has('singbox') || _url.searchParams.has('sb')) && !userAgent.includes('subConverter'));
-}
-
-/**
- * 
- * @param {*} uniqueIpTxt 
- * @param {*} noTLS 
- * @param {*} host 
- * @param {*} uuid 
- * @returns 
- */
-function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
-	// Regex to match IPv4 and IPv6
-	const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?(.*)?$/;
-
-	// Region codes mapped to corresponding emojis
-	const regionMap = {
-		'SG': '🇸🇬 SG',
-		'HK': '🇭🇰 HK',
-		'KR': '🇰🇷 KR',
-		'JP': '🇯🇵 JP',
-		'GB': '🇬🇧 GB',
-		'US': '🇺🇸 US',
-		'TW': '🇼🇸 TW',
-		'CF': '📶 CF'
-	};
-
-	const responseBody = uniqueIpTxt.map(ipTxt => {
-		let address = ipTxt;
-		let port = "443";
-		let remarks = "";
-
-		const match = address.match(regex);
-		if (match) {
-			address = match[1];
-			port = match[2] || port;
-			remarks = match[3] || host;
-		} else {
-			let ip, newPort, extra;
-
-			if (ipTxt.includes(':') && ipTxt.includes('#')) {
-				[ip, newPort, extra] = ipTxt.split(/[:#]/);
-			} else if (ipTxt.includes(':')) {
-				[ip, newPort] = ipTxt.split(':');
-			} else if (ipTxt.includes('#')) {
-				[ip, extra] = ipTxt.split('#');
-			} else {
-				ip = ipTxt;
-			}
-
-			address = ip;
-			port = newPort || port;
-			remarks = extra || host;
-			// console.log(`splitNodeData---> ip: ${ip} \n extra: ${extra} \n port: ${port}`);
-		}
-
-		// Replace region code with corresponding emoji
-		remarks = regionMap[remarks] || remarks;
-
-		// Check if TLS is disabled and if the port is in the allowed set
-		if (noTLS !== 'true' && portSet_http.has(parseInt(port))) {
-			return null; // Skip this iteration
-		}
-
-		const [v2ray, clash] = getConfigLink(uuid, host, address, port, remarks);
-		return v2ray;
-	}).filter(Boolean).join('\n');
-
-	let base64Response = responseBody;
-	return btoa(base64Response);
-}
-
-/** ---------------------Get CF data------------------------------ */
-
-async function getCFConfig(email, key, accountIndex) {
-	try {
-		const now = new Date();
-		const today = new Date(now);
-		today.setHours(0, 0, 0, 0);
-
-		// Calculate default value
-		const ud = Math.floor(((now - today.getTime()) / 86400000) * 24 * 1099511627776 / 2);
-		let upload = ud;
-		let download = ud;
-		let total = 24 * 1099511627776;
-
-		if (email && key) {
-			const accountId = await getAccountId(email, key);
-			if (accountId) {
-				// Calculate start and end time
-				now.setUTCHours(0, 0, 0, 0);
-				const startDate = now.toISOString();
-				const endDate = new Date().toISOString();
-
-				// Get summary data
-				const [pagesSumResult, workersSumResult] = await getCFSum(accountId, accountIndex, email, key, startDate, endDate);
-				upload = pagesSumResult;
-				download = workersSumResult;
-				total = 102400;
-			}
-		}
-
-		return { upload, download, total };
-	} catch (error) {
-		console.error('Error in getCFConfig:', error);
-		return { upload: 0, download: 0, total: 0 };
-	}
-}
-
-/**
- * 
- * @param {*} email 
- * @param {*} key 
- * @returns 
- */
-async function getAccountId(email, key) {
-	try {
-		const url = 'https://api.cloudflare.com/client/v4/accounts';
-		const headers = {
-			'X-AUTH-EMAIL': email,
-			'X-AUTH-KEY': key
-		};
-
-		const response = await fetch(url, { headers });
-
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-
-		const data = await response.json();
-		//console.error('getAccountId-->', data);
-
-		return data?.result?.[0]?.id || false;
-	} catch (error) {
-		console.error('Error fetching account ID:', error);
-		return false;
-	}
-}
-
-/**
- * 
- * @param {*} accountId 
- * @param {*} accountIndex 
- * @param {*} email 
- * @param {*} key 
- * @param {*} startDate 
- * @param {*} endDate 
- * @returns 
- */
-async function getCFSum(accountId, accountIndex, email, key, startDate, endDate) {
-	try {
-		const [startDateISO, endDateISO] = [new Date(startDate), new Date(endDate)].map(d => d.toISOString());
-
-		const query = JSON.stringify({
-			query: `query getBillingMetrics($accountId: String!, $filter: AccountWorkersInvocationsAdaptiveFilter_InputObject) {
-				viewer {
-					accounts(filter: {accountTag: $accountId}) {
-						pagesFunctionsInvocationsAdaptiveGroups(limit: 1000, filter: $filter) {
-							sum {
-								requests
-							}
-						}
-						workersInvocationsAdaptive(limit: 10000, filter: $filter) {
-							sum {
-								requests
-							}
-						}
-					}
-				}
-			}`,
-			variables: {
-				accountId,
-				filter: { datetime_geq: startDateISO, datetime_leq: endDateISO }
-			},
-		});
-
-		const headers = {
-			'Content-Type': 'application/json',
-			'X-AUTH-EMAIL': email,
-			'X-AUTH-KEY': key
-		};
-
-		const response = await fetch('https://api.cloudflare.com/client/v4/graphql', {
-			method: 'POST',
-			headers,
-			body: query
-		});
-
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-
-		const res = await response.json();
-		const accounts = res?.data?.viewer?.accounts?.[accountIndex];
-
-		if (!accounts) {
-			throw new Error('找不到账户数据');
-		}
-
-		const getSumRequests = (data) => data?.reduce((total, item) => total + (item?.sum?.requests || 0), 0) || 0;
-
-		const pagesSum = getSumRequests(accounts.pagesFunctionsInvocationsAdaptiveGroups);
-		const workersSum = getSumRequests(accounts.workersInvocationsAdaptive);
-
-		return [pagesSum, workersSum];
-
-	} catch (error) {
-		console.error('Error fetching billing metrics:', error);
-		return [0, 0];
-	}
-}
-
-const API_URL = 'http://ip-api.com/json/';
-const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
-/**
- * Send message to Telegram channel
- * @param {string} type 
- * @param {string} ip I
- * @param {string} [add_data=""] 
- */
-async function sendMessage(type, ip, add_data = "") {
-	if (botToken && chatID) {
-		try {
-			const ipResponse = await fetch(`${API_URL}${ip}?lang=zh-CN`);
-			let msg = `${type}\nIP: ${ip}\n${add_data}`;
-
-			if (ipResponse.ok) {
-				const ipInfo = await ipResponse.json();
-				msg = `${type}\nIP: ${ip}\n国家: ${ipInfo.country}\n城市: ${ipInfo.city}\n组织: ${ipInfo.org}\nASN: ${ipInfo.as}\n${add_data}`;
-			} else {
-				console.error(`Failed to fetch IP info. Status: ${ipResponse.status}`);
-			}
-
-			const telegramUrl = `${TELEGRAM_API_URL}${botToken}/sendMessage`;
-			const params = new URLSearchParams({
-				chat_id: chatID,
-				parse_mode: 'HTML',
-				text: msg
-			});
-
-			await fetch(`${telegramUrl}?${params.toString()}`, {
-				method: 'GET',
-				headers: {
-					'Accept': 'text/html,application/xhtml+xml,application/xml',
-					'Accept-Encoding': 'gzip, deflate, br',
-					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36'
-				}
-			});
-
-		} catch (error) {
-			console.error('Error sending message:', error);
-		}
-	} else {
-		console.warn('botToken or chatID is missing.');
-	}
-}
 
 
 /** -------------------processing logic-------------------------------- */
@@ -1264,7 +416,7 @@ async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawCli
 	 * @returns {Promise<void>} A Promise that resolves when the retry is complete.
 	 */
 	async function retry() {
-		const tcpSocket = socks5Enable ? await connectAndWrite(addressRemote, portRemote, true) : await connectAndWrite(proxyIP || addressRemote, proxyPort || portRemote);
+		const tcpSocket = socks5Enable ? await connectAndWrite(addressRemote, portRemote, true) : await connectAndWrite(addressRemote, proxyPort || portRemote);
 
 		console.log(`retry-${socks5Enable} connected to ${addressRemote}:${portRemote}`);
 		tcpSocket.closed.catch(error => {
@@ -1750,34 +902,3 @@ async function socks5Connect(ipType, remoteIp, remotePort, log) {
 }
 
 
-/** -------------------Home page-------------------------------- */
-async function nginx() {
-	const text = `
-	<!DOCTYPE html>
-	<html>
-	<head>
-	<title>Welcome to nginx!</title>
-	<style>
-		body {
-			width: 35em;
-			margin: 0 auto;
-			font-family: Tahoma, Verdana, Arial, sans-serif;
-		}
-	</style>
-	</head>
-	<body>
-	<h1>Welcome to nginx!</h1>
-	<p>If you see this page, the nginx web server is successfully installed and
-	working. Further configuration is required.</p>
-
-	<p>For online documentation and support please refer to
-	<a href="http://nginx.org/">nginx.org</a>.<br/>
-	Commercial support is available at
-	<a href="http://nginx.com/">nginx.com</a>.</p>
-
-	<p><em>Thank you for using nginx.</em></p>
-	</body>
-	</html>
-	`
-	return text;
-}
